@@ -1,0 +1,94 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+
+HANDLE hSerial;
+
+int OpenComm(char* portName) {
+    hSerial = CreateFile(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hSerial == INVALID_HANDLE_VALUE) {
+       
+        printf("Erro...\n");
+        return -1;
+    }
+
+    DCB dcbSerialParams = { 0 };
+    dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+
+    if (!GetCommState(hSerial, &dcbSerialParams)) {
+
+        printf("Erro...\n");
+        CloseHandle(hSerial);
+        return -1;
+    }
+
+    dcbSerialParams.BaudRate = CBR_9600;
+    dcbSerialParams.ByteSize = 8;
+    dcbSerialParams.StopBits = ONESTOPBIT;
+    dcbSerialParams.Parity = NOPARITY;
+
+    if (!SetCommState(hSerial, &dcbSerialParams)) {
+
+        printf("Erro...\n");
+        CloseHandle(hSerial);
+        return -1;
+    }
+
+    printf("Porta aberta...\n");
+
+    return 0;
+}
+
+int GetCommStateWrapper() {
+
+    DCB dcbSerialParams = { 0 };
+    dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+
+    if (!GetCommState(hSerial, &dcbSerialParams)) {
+
+        printf("Erro ao obter o estado da porta serial.\n");
+        return -1;
+    }
+
+    printf("Velocidade de transmissão: %d\n", dcbSerialParams.BaudRate);
+    printf("ByteSize: %d\n", dcbSerialParams.ByteSize);
+    printf("StopBits: %d\n", dcbSerialParams.StopBits);
+    printf("Parity: %d\n", dcbSerialParams.Parity);
+
+    return 0;
+}
+
+int GetCommErrorWrapper() {
+
+    COMSTAT comStat;
+    DWORD comError;
+
+    if (!ClearCommError(hSerial, &comError, &comStat)) {
+
+        printf("Erro...\n");
+        return -1;
+    }
+
+    printf("Erro...: %d\n", comError);
+
+    return 0;
+}
+void CloseComm() {
+    
+    CloseHandle(hSerial);
+    printf("Porta fechada...\n");
+}
+int main() {
+    if (OpenComm("COM1") != 0) {
+        return -1;
+}
+    if (GetCommStateWrapper() != 0) {
+        return -1;
+}
+    if (GetCommErrorWrapper() != 0) {
+        return -1;
+}
+    CloseComm();
+
+    return 0;
+}
